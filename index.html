@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
 <title>Un regalo per te, Irene!</title>
 
-<!-- ===== Meta tag per esperienza "App" (nasconde barra browser dopo installazione) ===== -->
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#1a0f1f">
 <meta name="mobile-web-app-capable" content="yes">
@@ -48,25 +47,6 @@
     50% { opacity:1; transform:scale(1.8); }
   }
 
-  /* ---------- Pulsante Schermo Intero (stile app) ---------- */
-  #fullscreen-btn {
-    position:fixed;
-    top:16px; right:16px;
-    z-index:200;
-    background: rgba(244,201,93,0.15);
-    border:1px solid rgba(244,201,93,0.5);
-    color:#f4c95d;
-    width:42px; height:42px;
-    border-radius:50%;
-    display:flex; align-items:center; justify-content:center;
-    font-size:1.1rem;
-    cursor:pointer;
-    backdrop-filter: blur(6px);
-    transition: transform 0.2s ease, background 0.2s ease;
-  }
-  #fullscreen-btn:hover { transform:scale(1.1); background: rgba(244,201,93,0.28); }
-  #fullscreen-btn:active { transform:scale(0.95); }
-
   #install-hint {
     position:fixed;
     bottom:16px; left:50%; transform:translateX(-50%);
@@ -75,7 +55,7 @@
     color:#f4c95d;
     padding:9px 18px;
     border-radius:30px;
-    font-size:0.75rem;
+    font-size:0.72rem;
     font-weight:600;
     letter-spacing:0.3px;
     border:1px solid rgba(244,201,93,0.35);
@@ -441,8 +421,7 @@
 <body>
 
 <div id="stars"></div>
-<button id="fullscreen-btn" onclick="toggleFullscreen()" title="Schermo intero">⛶</button>
-<div id="install-hint">📱 Per aprirla come un'app: menu del browser → "Aggiungi a Home"</div>
+<div id="install-hint">📱 Aggiungila a "Schermata Home" per aprirla sempre come un'app</div>
 
 <div id="loader">
   <svg class="heart-svg" viewBox="0 0 32 29">
@@ -524,10 +503,22 @@
     starsWrap.appendChild(s);
   }
 
+  /* Nasconde automaticamente la barra indirizzi su mobile (Safari/Chrome Android)
+     senza bisogno di alcun tocco da parte dell'utente */
+  function hideAddressBar() {
+    if (!window.matchMedia('(display-mode: standalone)').matches) {
+      window.scrollTo(0, 1);
+      setTimeout(() => window.scrollTo(0, 1), 300);
+    }
+  }
+  window.addEventListener('load', hideAddressBar);
+  window.addEventListener('orientationchange', hideAddressBar);
+
   window.addEventListener('load', () => {
     setTimeout(() => {
       document.getElementById('loader').classList.add('hide');
       document.getElementById('scene').classList.add('show');
+      hideAddressBar();
     }, 2300);
   });
 
@@ -535,6 +526,13 @@
     const wrap = document.getElementById('envelope-wrap');
     if (wrap.classList.contains('opened')) return;
     wrap.classList.add('opened');
+
+    /* Il click sulla busta è già un'interazione utente: ne approfittiamo
+       per attivare lo schermo intero reale, dove supportato */
+    if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+
     launchConfetti();
     setTimeout(() => {
       document.getElementById('voucher').classList.add('show');
@@ -548,14 +546,6 @@
       msg.classList.add('show');
       setTimeout(() => msg.classList.remove('show'), 1400);
     });
-  }
-
-  function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen();
-    }
   }
 
   function launchConfetti() {
@@ -575,9 +565,7 @@
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      const swCode = `
-        self.addEventListener('fetch', e => {});
-      `;
+      const swCode = `self.addEventListener('fetch', e => {});`;
       const blob = new Blob([swCode], {type:'application/javascript'});
       navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
     });
